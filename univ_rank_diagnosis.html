@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>大学ランク診断 | UNIV CHECK</title>
+<style>
+:root{--navy:#101827;--blue:#3157a4;--gold:#d9a441;--ink:#172033;--muted:#697386;--line:#e5e9f0;--bg:#f3f5f8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;line-height:1.65}
+header{background:linear-gradient(125deg,#101827,#1d3153);color:white;padding:28px 18px 34px}.head{max-width:850px;margin:auto}.brand{font-size:12px;letter-spacing:.2em;color:#b9c8e5;font-weight:700}
+h1{font-size:clamp(27px,6vw,42px);line-height:1.2;margin:12px 0 8px;letter-spacing:.04em}header p{margin:0;color:#d2dced;font-size:14px}
+main{max-width:850px;margin:-18px auto 50px;padding:0 14px}.panel{background:white;border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 28px #18243b0b;padding:22px;margin-bottom:16px}
+.label{font-size:13px;font-weight:800;display:block;margin-bottom:8px}.inputrow{display:flex;gap:9px}
+input{min-width:0;flex:1;border:1px solid #cbd3df;border-radius:10px;padding:14px;font-size:16px;outline:none}input:focus{border-color:var(--blue);box-shadow:0 0 0 3px #3157a41c}
+button{border:0;border-radius:10px;background:var(--blue);color:white;font-size:15px;font-weight:800;padding:0 22px;cursor:pointer}button:hover{filter:brightness(1.08)}
+.hint{font-size:12px;color:var(--muted);margin:9px 0 0}#result{display:none}.result-head{text-align:center;padding:14px 0 20px}
+.kicker{font-size:12px;color:var(--muted);letter-spacing:.13em;font-weight:800}.univ{font-size:clamp(24px,5vw,34px);font-weight:900;margin:7px 0 13px;overflow-wrap:anywhere}
+.rank{font-size:68px;line-height:1.1;font-weight:950;color:var(--gold);text-shadow:0 2px 0 #f5e8c9}.rank-caption{font-size:13px;color:var(--muted);font-weight:700}
+.deviation{font-size:25px;font-weight:900;color:#1e754b;margin-top:7px}.small{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px} .stat{background:#f6f8fb;border:1px solid #edf0f5;border-radius:12px;padding:13px}
+.stat span{display:block;font-size:12px;color:var(--muted)}.stat strong{font-size:16px}h2{font-size:17px;margin:0 0 14px}
+.barrow{margin:13px 0}.barlabel{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;margin-bottom:6px}
+.track{height:9px;border-radius:20px;background:#e9edf3;overflow:hidden}.fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#3157a4,#5e85d2)}
+.comment{background:#f7f8fb;border-left:4px solid var(--gold);padding:15px;border-radius:8px;font-size:14px}
+.verdict{display:inline-block;background:#e8f5ed;color:#17643c;border-radius:30px;padding:7px 13px;font-weight:900;font-size:13px;margin-top:14px}
+.meta{font-size:11px;color:#8992a2;text-align:center;margin-top:16px}.actions{display:flex;gap:9px;margin-top:17px}.actions button{min-height:44px;flex:1}.actions .secondary{background:#e9edf4;color:#27344b}
+footer{text-align:center;color:#8992a2;font-size:11px;padding:0 16px 30px}
+@media(max-width:520px){.inputrow{flex-direction:column}button{min-height:48px}.grid{gap:8px}.panel{padding:18px}.rank{font-size:60px}}
+</style></head>
+<body>
+<header><div class="head"><div class="brand">UNIV CHECK / UNIVERSITY REPORT</div><h1>大学ランク診断</h1><p>その大学、本当に頭いいのか？ 独自の謎基準で徹底判定。</p></div></header>
+<main>
+<section class="panel"><label class="label" for="university">大学名を入力してください</label>
+<div class="inputrow"><input id="university" maxlength="40" placeholder="例：チャッピー大学" autocomplete="off"><button id="diagnose">診断する</button></div>
+<p class="hint">※実在の大学名でも入力できますが、結果はすべてネタ診断です。</p></section>
+<section class="panel" id="result" aria-live="polite"><div class="result-head">
+<div class="kicker">UNIVERSITY EVALUATION REPORT</div><div class="univ" id="resultName"></div><div class="rank" id="rank">SS</div>
+<div class="rank-caption">総合大学ランク</div><div class="deviation" id="hensachi"></div><div class="small" id="limit"></div></div><div class="grid" id="basicInfo"></div></section>
+<section class="panel" id="details" style="display:none"><h2>分野別評価</h2><div id="bars"></div></section>
+<section class="panel" id="commentPanel" style="display:none"><h2>診断コメント</h2><div class="comment" id="comment"></div><div class="verdict" id="verdict"></div>
+<div class="meta">※この診断は娯楽目的の架空データです。実在する大学の偏差値・教育内容・就職実績を示すものではありません。</div>
+<div class="actions"><button class="secondary" id="again">別の大学を診断</button><button id="share">結果をコピー</button></div></section>
+</main><footer>UNIV CHECK — 架空大学ランク診断システム</footer>
+<script>
+const $ = id => document.getElementById(id);
+function hashName(str){let h=2166136261;for(const ch of str){h^=ch.codePointAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+function diagnose(){
+ const name=$("university").value.trim();if(!name){$("university").focus();return;}
+ const seed=hashName(name),rand=n=>(seed>>>(n%24))%100;
+ const ranks=["SS","S","A","B","C","D","E","F"],rank=ranks[rand(3)%ranks.length];
+ const data={
+ SS:{score:99,verdict:"判定：超高学歴（規格外）",comments:["学力という概念を超越した存在。入試問題を解く前に、入試問題そのものを生成してしまう。","国内トップクラスどころか、偏差値の測定器が先に音を上げた。"]},
+ S:{score:87,verdict:"判定：超高学歴",comments:["圧倒的な知性を誇る名門。卒業生の話が難しすぎて、雑談にも参考文献が必要になる。","非常に優秀。大学名を名乗るだけで、なぜか周囲が姿勢を正す。"]},
+ A:{score:75,verdict:"判定：高学歴",comments:["かなりの実力校。努力と才能がほどよく混ざった、隙の少ない大学である。","世間からの評価は上々。親戚の集まりで大学名を言うと少し空気が変わる。"]},
+ B:{score:61,verdict:"判定：中堅上位",comments:["堅実な実力校。派手さはないが、着実に評価を積み上げている。","知る人ぞ知る実力派。大学名よりも本人の頑張りで勝負するタイプ。"]},
+ C:{score:49,verdict:"判定：平均的",comments:["良くも悪くも標準的。大学生活をどう過ごすかで評価が大きく変わりそう。","突出した特徴はないが、伸びしろは十分。これからの展開に期待。"]},
+ D:{score:38,verdict:"判定：やや個性派",comments:["独自路線を突き進む大学。偏差値だけでは測れない何かがある……のかもしれない。","評価は厳しめ。ただし、校風の自由さには定評があるという噂。"]},
+ E:{score:27,verdict:"判定：かなり個性派",comments:["入試難易度よりも、入学後に何を成し遂げるかが重要視される大学。","謎が多い大学。公式パンフレットを読んでも、結局よく分からない。"]},
+ F:{score:12,verdict:"判定：伝説級の穴場",comments:["偏差値という物差しが機能していない。独自の教育理念がある……という設定。","知名度は未知数。しかし一部の熱狂的なファンからは絶大な支持を集めている。"]}
+ };
+ const d=data[rank],hensachi=rank==="SS"?"999.9":String(d.score+(rand(9)%13)-6)+".0";
+ const fields=[["人工知能学部",45+rand(5)%56],["雑談学部",40+rand(8)%61],["記憶力学部",25+rand(11)%76],["人間理解学部",15+rand(14)%86]];
+ $("resultName").textContent=name;$("rank").textContent=rank;$("hensachi").textContent="偏差値 "+hensachi;
+ $("limit").textContent=rank==="SS"?"測定上限を突破しました":"※独自のネタ指数";
+ $("basicInfo").innerHTML=`
+ <div class="stat"><span>所在地</span><strong>${rand(2)%2?"インターネット上":"日本・未確認地域"}</strong></div>
+ <div class="stat"><span>設立年</span><strong>${1980+rand(6)%46}年</strong></div>
+ <div class="stat"><span>入試方式</span><strong>${["総合会話型選抜","直感・ひらめき方式","一般選抜（独自問題）"][rand(12)%3]}</strong></div>
+ <div class="stat"><span>就職偏差値</span><strong>${40+rand(19)%61}</strong></div>`;
+ $("bars").innerHTML=fields.map(([label,value])=>`<div class="barrow"><div class="barlabel"><span>${label}</span><span>${value}/100</span></div><div class="track"><div class="fill" style="width:${value}%"></div></div></div>`).join("");
+ $("comment").textContent="「"+d.comments[rand(17)%d.comments.length]+"」";$("verdict").textContent=d.verdict;
+ $("result").style.display="block";$("details").style.display="block";$("commentPanel").style.display="block";
+ $("result").scrollIntoView({behavior:"smooth",block:"start"});
+}
+$("diagnose").addEventListener("click",diagnose);$("university").addEventListener("keydown",e=>{if(e.key==="Enter")diagnose();});
+$("again").addEventListener("click",()=>{$("university").focus();window.scrollTo({top:0,behavior:"smooth"});});
+$("share").addEventListener("click",async()=>{const text=`【大学ランク診断】\n${$("resultName").textContent}\nランク：${$("rank").textContent}\n${$("hensachi").textContent}\n${$("verdict").textContent}\n※架空のネタ診断です。`;try{await navigator.clipboard.writeText(text);$("share").textContent="コピーしました！";}catch(e){$("share").textContent="コピーできませんでした";}});
+$("university").value="チャッピー大学";
+</script></body></html>
